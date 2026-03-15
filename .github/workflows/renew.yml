@@ -2,8 +2,8 @@ name: Katabump Auto Renew
 
 on:
   schedule:
-    # 每天 UTC 0点 (北京时间 8点) 运行
-    - cron: '0 0 * * *'
+    # 每天 UTC 0点 (北京时间 9点) 运行
+    - cron: '0 1 * * *'
   workflow_dispatch: # 允许手动触发
 
 jobs:
@@ -12,6 +12,28 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+
+    # --- 新增步骤：概率过滤器 ---
+    - name: Random Chance Filter
+      id: check-probability
+      shell: bash
+      run: |
+        # 允许手动触发跳过概率检查
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "手动触发，跳过概率检查。"
+          echo "run_task=true" >> $GITHUB_OUTPUT
+        else
+          # 生成 0-2 的随机数 (0, 1, 2)
+          # 只有当结果为 0 时才执行 (概率约为 33.3%)
+          RANDOM_VAL=$((RANDOM % 3))
+          if [ $RANDOM_VAL -eq 0 ]; then
+            echo "随机数命中 (值: $RANDOM_VAL)，开始任务。"
+            echo "run_task=true" >> $GITHUB_OUTPUT
+          else
+            echo "随机数未命中 (值: $RANDOM_VAL)，跳过任务。"
+            echo "run_task=false" >> $GITHUB_OUTPUT
+          fi
+        fi
     
     - name: Setup Node.js
       uses: actions/setup-node@v4
